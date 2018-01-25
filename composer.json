@@ -1,0 +1,22 @@
+{
+    "name": "drupal/social_auth_foursquare",
+    "type": "drupal-module",
+    "description": "Social Auth integration for Foursquare.",
+    "keywords": ["Drupal"],
+    "license": "GPL-2.0+",
+    "homepage": "https://www.drupal.org/project/social_auth_foursquare",
+    "minimum-stability": "dev",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/social_auth_foursquare",
+        "source": "http://cgit.drupalcode.org/social_auth_foursquare"
+    },
+    "require": {
+        "stevenmaguire/oauth2-foursquare": "^2.0"
+    },
+    "authors": [
+        {
+            "name": "Neeraj Pandey (neerajpandey)",
+            "email": "neerajyednap@gmail.com"
+        }
+    ]
+}

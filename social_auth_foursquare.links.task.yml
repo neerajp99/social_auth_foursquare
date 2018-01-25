@@ -1,0 +1,4 @@
+social_auth_foursquare.settings.tab:
+  title: 'Foursquare'
+  route_name: social_auth_foursquare.settings_form
+  base_route: social_auth.integrations

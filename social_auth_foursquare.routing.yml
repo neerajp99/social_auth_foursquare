@@ -1,0 +1,25 @@
+social_auth_foursquare.redirect_to_foursquare:
+  path: 'user/login/foursquare'
+  defaults:
+    _controller: '\Drupal\social_auth_foursquare\Controller\FoursquareAuthController::redirectToFoursquare'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+social_auth_foursquare.callback:
+  path: 'user/login/foursquare/callback'
+  defaults:
+    _controller: '\Drupal\social_auth_foursquare\Controller\FoursquareAuthController::callback'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+social_auth_foursquare.settings_form:
+  path: 'admin/config/social-api/social-auth/foursquare'
+  defaults:
+    _title: 'Social Auth Foursquare settings'
+    _form: '\Drupal\social_auth_foursquare\Form\FoursquareAuthSettingsForm'
+  requirements:
+    _permission: 'administer social api authentication'
