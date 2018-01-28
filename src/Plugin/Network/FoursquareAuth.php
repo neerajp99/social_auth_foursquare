@@ -122,7 +122,7 @@ class FoursquareAuth extends NetworkBase implements FoursquareAuthInterface {
   /**
    * Sets the underlying SDK library.
    *
-   * @return \Stevenmaguire\\OAuth2\Client\Provider\Foursquare
+   * @return \Stevenmaguire\OAuth2\Client\Provider\Foursquare
    *   The initialized 3rd party library instance.
    *
    * @throws SocialApiException
