@@ -32,7 +32,7 @@ INSTALLATION
 ------------
 
  * Run composer to install the dependencies.
-   composer require "drupal/social_auth_foursquare"
+   composer require "drupal/social_auth_foursquare:^2.0""
 
  * Install the dependencies: Social API and Social Auth.
 
@@ -62,11 +62,11 @@ You can also add a button or link anywhere on the site that points
 to /user/login/foursquare, so theming and customizing the button or link
 is very flexible.
 
-When the user opens the /user/login/foursquare link, it automatically takes
-user to Foursquare Accounts for authentication. Foursquare then returns the user to
-Drupal site. If we have an existing Drupal user with the same email address
-provided by Foursquare, that user is logged in. Otherwise a new Drupal user is
-created.
+After Foursquare has returned the user to your site, the module compares the user id
+or email address provided by Foursquare. If the user has previously registered using
+Foursquare or your site already has an account with the same email address, the user
+is logged in. If not, a new user account is created. Also, a Foursquare account can
+be associated with an authenticated user.
 
 SUPPORT REQUESTS
 ----------------
@@ -87,4 +87,4 @@ MAINTAINERS
 -----------
 
 Current maintainers:
- *  Neeraj Pandey (neerajpandey)
+ *  Neeraj Pandey (neerajpandey) - https://www.drupal.org/u/neerajpandey
