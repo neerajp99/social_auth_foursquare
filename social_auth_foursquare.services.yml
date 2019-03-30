@@ -3,7 +3,7 @@ services:
     class: Drupal\social_auth_foursquare\FoursquareAuthManager
     arguments:
       - '@logger.factory'
-      - '@event_dispatcher'
-      - '@entity_field.manager'
-      - '@url_generator.non_bubbling'
+      # - '@event_dispatcher'
+      # - '@entity_field.manager'
+      # - '@url_generator.non_bubbling'
       - '@config.factory'
