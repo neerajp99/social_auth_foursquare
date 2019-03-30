@@ -2,198 +2,101 @@
 
 namespace Drupal\social_auth_foursquare;
 
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\social_auth\AuthManager\OAuth2Manager;
 use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Routing\UrlGeneratorInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 
 /**
- * Contains all the logic for Foursquare login integration.
+ * Contains all the logic for Foursquare OAuth2 authentication.
  */
 class FoursquareAuthManager extends OAuth2Manager {
 
   /**
-   * The logger channel.
-   *
-   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
-   */
-  protected $loggerFactory;
-
-  /**
-   * The event dispatcher.
-   *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
-   */
-  protected $eventDispatcher;
-
-  /**
-   * The entity field manager.
-   *
-   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
-   */
-  protected $entityFieldManager;
-
-  /**
-   * The url generator.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  protected $urlGenerator;
-
-  /**
-   * The Foursquare client object.
-   *
-   * @var \Stevenmaguire\OAuth2\Client\Provider\Foursquare
-   */
-  protected $client;
-  /**
-   * The Foursquare access token.
-   *
-   * @var \Stevenmaguire\OAuth2\Client\Token\AccessToken
-   */
-  protected $token;
-
-  /**
-   * The Foursquare user.
-   *
-   * @var \Stevenmaguire\OAuth2\Client\Provider\FoursquareUser
-   */
-  protected $user;
-
-  /**
-   * The config factory object.
-   *
-   * @var \Drupal\Core\Config\ConfigFactory
-   */
-  protected $config;
-
-  /**
-   * The data point to be collected.
-   *
-   * @var string
-   */
-  protected $scopes;
-
-  /**
-   * Social Auth Foursquare Settings.
-   *
-   * @var array
-   */
-  protected $settings;
-
-  /**
    * Constructor.
    *
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
-   *   Used for logging errors.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
-   *   Used for dispatching events to other modules.
-   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
-   *   Used for accessing Drupal user picture preferences.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   Used for generating absoulute URLs.
    * @param \Drupal\Core\Config\ConfigFactory $configFactory
    *   Used for accessing configuration object factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
+   *   The logger factory.
    */
-  public function __construct(LoggerChannelFactoryInterface $logger_factory, EventDispatcherInterface $event_dispatcher, EntityFieldManagerInterface $entity_field_manager, UrlGeneratorInterface $url_generator, ConfigFactory $configFactory) {
-    $this->loggerFactory      = $logger_factory;
-    $this->eventDispatcher    = $event_dispatcher;
-    $this->entityFieldManager = $entity_field_manager;
-    $this->urlGenerator       = $url_generator;
-    $this->config             = $configFactory->getEditable('social_auth_foursquare.settings');
+  public function __construct(ConfigFactory $configFactory, LoggerChannelFactoryInterface $logger_factory) {
+    parent::__construct($configFactory->get('social_auth_foursquare.settings'), $logger_factory);
   }
 
   /**
-   * Authenticates the users by using the access token.
+   * {@inheritdoc}
    */
   public function authenticate() {
-    $this->token = $this->client->getAccessToken('authorization_code',
-      ['code' => $_GET['code']]);
+    try {
+      $this->setAccessToken($this->client->getAccessToken('authorization_code',
+        ['code' => $_GET['code']]));
+    }
+    catch (IdentityProviderException $e) {
+      $this->loggerFactory->get('social_auth_foursquare')
+        ->error('There was an error during authentication. Exception: ' . $e->getMessage());
+    }
   }
 
   /**
-   * Gets the data by using the access token returned.
-   *
-   * @return \Stevenmaguire\OAuth2\Client\Provider\FoursquareUser
-   *   User info returned by the Foursquare.
+   * {@inheritdoc}
    */
   public function getUserInfo() {
-    $this->user = $this->client->getResourceOwner($this->token);
+    if (!$this->user) {
+      $this->user = $this->client->getResourceOwner($this->getAccessToken());
+    }
+
     return $this->user;
   }
 
   /**
-   * Gets the data by using the access token returned.
-   *
-   * @param string $url
-   *   The API call url.
-   *
-   * @return string
-   *   Data returned by API call.
+   * {@inheritdoc}
    */
-  public function getExtraDetails($url) {
-    if ($url) {
-      $httpRequest = $this->client->getAuthenticatedRequest('GET', $url, $this->token, []);
-      $data = $this->client->getResponse($httpRequest);
-      return json_decode($data->getBody(), TRUE);
+  public function getAuthorizationUrl() {
+    $scopes = [
+      'email',
+      'profile',
+    ];
+
+    $extra_scopes = $this->getScopes();
+    if ($extra_scopes) {
+      $scopes = array_merge($scopes, explode(',', $extra_scopes));
     }
 
-    return FALSE;
+    // Returns the URL where user will be redirected.
+    return $this->client->getAuthorizationUrl([
+      'scope' => $scopes,
+    ]);
   }
 
   /**
-   * Returns token generated after authorization.
-   *
-   * @return string
-   *   Used for making API calls.
+   * {@inheritdoc}
    */
-  public function getAccessToken() {
-    return $this->token;
+  public function requestEndPoint($method, $path, $domain = NULL, array $options = []) {
+    if (!$domain) {
+      $domain = 'https://api.foursquare.com';
+    }
+
+    $url = $domain . $path;
+
+    $request = $this->client->getAuthenticatedRequest($method, $url, $this->getAccessToken(), $options);
+
+    try {
+      return $this->client->getParsedResponse($request);
+    }
+    catch (IdentityProviderException $e) {
+      $this->loggerFactory->get('social_auth_foursquare')
+        ->error('There was an error when requesting ' . $url . '. Exception: ' . $e->getMessage());
+    }
+
+    return NULL;
   }
 
   /**
-   * Returns the Foursquare login URL where user will be redirected.
-   *
-   * @return string
-   *   Absolute Foursquare login URL where user will be redirected.
-   */
-  public function getFoursquareLoginUrl() {
-    $login_url = $this->client->getAuthorizationUrl();
-
-    // Generate and return the URL where we should redirect the user.
-    return $login_url;
-  }
-
-  /**
-   * Returns the Foursquare login URL where user will be redirected.
-   *
-   * @return string
-   *   Absolute Foursquare login URL where user will be redirected
+   * {@inheritdoc}
    */
   public function getState() {
-    $state = $this->client->getState();
-
-    // Generate and return the URL where we should redirect the user.
-    return $state;
-  }
-
-  /**
-   * Gets the data Point defined the settings form page.
-   *
-   * @return string
-   *   Comma-separated scopes.
-   */
-
-  /**
-   * Gets the API calls to collect data.
-   *
-   * @return string
-   *   Comma-separated API calls.
-   */
-  public function getApiCalls() {
-    return $this->config->get('api_calls');
+    return $this->client->getState();
   }
 
 }
