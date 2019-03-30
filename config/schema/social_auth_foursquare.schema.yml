@@ -11,9 +11,9 @@ social_auth_foursquare.settings:
     scopes:
       type: string
       label: 'Scopes to make API calls'
-    api_calls:
+    endpoints:
       type: string
-      label: 'API calls which will retrieve data'
+      label: 'API endpoints to be requested'
     restricted_domain:
       type: string
       label: 'Restricted Domain'
